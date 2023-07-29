@@ -11,7 +11,12 @@ import {Helmet} from 'react-helmet'
 import {FormattedMessage, useIntl} from 'react-intl'
 
 // Components
-import {Box, Button, Stack, useDisclosure} from '@salesforce/retail-react-app/app/components/shared/ui'
+import {
+    Box,
+    Button,
+    Stack,
+    useDisclosure
+} from '@salesforce/retail-react-app/app/components/shared/ui'
 import {
     useProduct,
     useCategory,
@@ -43,7 +48,7 @@ import {rebuildPathWithParams} from '@salesforce/retail-react-app/app/utils/url'
 import {useHistory, useLocation, useParams} from 'react-router-dom'
 import {useToast} from '@salesforce/retail-react-app/app/hooks/use-toast'
 import {useWishList} from '@salesforce/retail-react-app/app/hooks/use-wish-list'
-import BonusProductsModal from '../../components/bonus-products-modal/index'
+import BonusProductsModal from '@salesforce/retail-react-app/app/components/bonus-products-modal/index'
 
 const ProductDetail = () => {
     const {formatMessage} = useIntl()
@@ -55,7 +60,10 @@ const ProductDetail = () => {
     const [productSetSelection, setProductSetSelection] = useState({})
     const childProductRefs = React.useRef({})
     const customerId = useCustomerId()
-    const {isOpen, onOpen, onClose} = useDisclosure()
+    const {
+        onOpen: onBonusProductsModalOpen,
+        onClose: onBonusProductsModalClose
+    } = useDisclosure()
     /****************************** Basket *********************************/
     const {data: basket} = useCurrentBasket()
     const addItemToBasketMutation = useShopperBasketsMutation('addItemToBasket')
@@ -252,7 +260,7 @@ const ProductDetail = () => {
         // Basket object contains indication that bonus items are available
         if (basket?.bonusDiscountLineItems?.length > 0) {
             // Display UI for the customer to choose
-            onOpen()
+            onBonusProductsModalOpen()
         }
     }, [basket])
 
@@ -267,7 +275,11 @@ const ProductDetail = () => {
                 <meta name="description" content={product?.pageDescription} />
             </Helmet>
 
-            <BonusProductsModal isOpen={isOpen} onClose={onClose} />
+            <BonusProductsModal
+                isOpen={onBonusProductsModalOpen}
+                onClose={onBonusProductsModalClose}
+                bonusDiscountLineItems={basket?.bonusDiscountLineItems}
+            />
 
             <Stack spacing={16}>
                 {isProductASet ? (

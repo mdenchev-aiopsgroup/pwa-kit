@@ -67,7 +67,7 @@ const CartSecondaryButtonGroup = ({
 
     // Single bonus products cannot be removed
     // This logic should be extended when choice of bonus product is introduced
-    const canProductLineItemBeRemoved = !variant.bonusProductLineItem;
+    const canProductLineItemBeRemoved = !variant.bonusProductLineItem
 
     return (
         <>
@@ -78,12 +78,14 @@ const CartSecondaryButtonGroup = ({
                 divider={<Divider display={{base: 'block', lg: 'none'}} />}
             >
                 <ButtonGroup spacing="6">
-                    {canProductLineItemBeRemoved && (<Button variant="link" size="sm" onClick={showRemoveItemConfirmation}>
-                        <FormattedMessage
-                            defaultMessage="Remove"
-                            id="cart_secondary_button_group.action.remove"
-                        />
-                    </Button>)}
+                    {canProductLineItemBeRemoved && (
+                        <Button variant="link" size="sm" onClick={showRemoveItemConfirmation}>
+                            <FormattedMessage
+                                defaultMessage="Remove"
+                                id="cart_secondary_button_group.action.remove"
+                            />
+                        </Button>
+                    )}
                     {customer.isRegistered && (
                         <Button
                             variant="link"
