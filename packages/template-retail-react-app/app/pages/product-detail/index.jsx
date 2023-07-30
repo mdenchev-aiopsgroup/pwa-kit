@@ -61,6 +61,7 @@ const ProductDetail = () => {
     const childProductRefs = React.useRef({})
     const customerId = useCustomerId()
     const {
+        isOpen: isBonusProductsModalOpen,
         onOpen: onBonusProductsModalOpen,
         onClose: onBonusProductsModalClose
     } = useDisclosure()
@@ -276,7 +277,8 @@ const ProductDetail = () => {
             </Helmet>
 
             <BonusProductsModal
-                isOpen={onBonusProductsModalOpen}
+                isOpen={isBonusProductsModalOpen}
+                onOpen={onBonusProductsModalOpen}
                 onClose={onBonusProductsModalClose}
                 bonusDiscountLineItems={basket?.bonusDiscountLineItems}
             />
