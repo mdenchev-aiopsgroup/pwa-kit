@@ -17,92 +17,18 @@ import {
     ModalFooter,
     ModalHeader,
     ModalOverlay,
-    Stack,
-    Radio,
-    RadioGroup,
-    Checkbox,
-    CheckboxGroup
+    Stack
 } from '@salesforce/retail-react-app/app/components/shared/ui/index'
 
-import {useProductSearch} from '@salesforce/commerce-sdk-react'
-
-function renderRadio(bonusProducts) {
-    return (
-        <RadioGroup>
-            {bonusProducts?.map((bonusProduct) => {
-                return (
-                    <Radio key={bonusProduct.productId} value={bonusProduct.productId}>
-                        {bonusProduct.productName}
-                    </Radio>
-                )
-            })}
-        </RadioGroup>
-    )
-}
-
-function renderCheckbox(bonusProducts) {
-    return (
-        <CheckboxGroup>
-            {bonusProducts?.map((bonusProduct) => {
-                return (
-                    <Checkbox key={bonusProduct.productId} value={bonusProduct.productId}>
-                        {bonusProduct.productName}
-                    </Checkbox>
-                )
-            })}
-        </CheckboxGroup>
-    )
-}
-
-function useBonusProductsFromRule(promotionId) {
-    const searchParams = {
-        _refine: 'pmid=' + promotionId
-    }
-    const {isLoading, data: productSearchResult} = useProductSearch(
-        {
-            parameters: {
-                ...searchParams,
-                refine: searchParams._refine
-            }
-        },
-        {
-            keepPreviousData: true
-        }
-    )
-
-    if (!isLoading) {
-        const bonusProducts = productSearchResult?.hits?.map((hit) => {
-            return {
-                productId: hit.productId,
-                productName: hit.productName
-            }
-        })
-        return bonusProducts
-    }
-
-    return []
-}
+import {
+    ChoiceOfBonusProductsList,
+    ChoiceOfBonusProductsRule
+} from '@salesforce/retail-react-app/app/components/bonus-products-modal/choice-of-bonus-products'
 
 const BonusProductsModal = ({isOpen, onClose, bonusDiscountLineItems}) => {
     if (!bonusDiscountLineItems) {
         return <></>
     }
-
-    const mapBonusProducts = new Map()
-
-    bonusDiscountLineItems?.forEach((discountLineItem) => {
-        let bonusProducts = []
-        if (discountLineItem?.promotionId && !discountLineItem?.bonusProducts) {
-            bonusProducts = useBonusProductsFromRule(discountLineItem.promotionId)
-        } else {
-            bonusProducts = discountLineItem.bonusProducts
-        }
-        mapBonusProducts.set(discountLineItem.id, {
-            bonusProducts: bonusProducts,
-            promotionId: discountLineItem.promotionId,
-            maxBonusItems: discountLineItem.maxBonusItems
-        })
-    })
 
     return (
         <Modal isOpen={isOpen} onClose={onClose}>
@@ -112,10 +38,19 @@ const BonusProductsModal = ({isOpen, onClose, bonusDiscountLineItems}) => {
                 <ModalCloseButton />
                 <ModalBody>
                     <Stack spacing="24px">
-                        {Array.from(mapBonusProducts.values()).map((discountLineItem) => {
-                            return discountLineItem.maxBonusItems === 1
-                                ? renderRadio(discountLineItem.bonusProducts)
-                                : renderCheckbox(discountLineItem.bonusProducts)
+                        {bonusDiscountLineItems.map((discountLineItem) => {
+                            return discountLineItem.promotionId &&
+                                !discountLineItem?.bonusProducts ? (
+                                <ChoiceOfBonusProductsRule
+                                    maxBonusItems={discountLineItem.maxBonusItems}
+                                    promotionId={discountLineItem.promotionId}
+                                />
+                            ) : (
+                                <ChoiceOfBonusProductsList
+                                    bonusProducts={discountLineItem.bonusProducts}
+                                    maxBonusItems={discountLineItem.maxBonusItems}
+                                />
+                            )
                         })}
                         <Button width="full">Select bonus product(s)</Button>
                     </Stack>
