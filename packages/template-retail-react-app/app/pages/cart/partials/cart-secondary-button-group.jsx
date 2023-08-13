@@ -67,7 +67,14 @@ const CartSecondaryButtonGroup = ({
 
     // Single bonus products cannot be removed
     // This logic should be extended when choice of bonus product is introduced
-    const canProductLineItemBeRemoved = !variant.bonusProductLineItem
+    let canProductLineItemBeRemoved = true
+
+    // Bonus choice products can be removed
+    if (variant?.bonusDiscountLineItem) {
+        canProductLineItemBeRemoved =
+            variant.priceAdjustments?.map((pa) => pa.appliedDiscount.type === 'bonus_choice')
+                ?.length > 0
+    }
 
     return (
         <>
