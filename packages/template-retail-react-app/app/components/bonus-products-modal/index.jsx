@@ -57,6 +57,7 @@ const BonusProductsModal = ({isOpen, onClose, bonusDiscountLineItems}) => {
                                 <ChoiceOfBonusProductsList
                                     bonusProducts={discountLineItem.bonusProducts}
                                     maxBonusItems={discountLineItem.maxBonusItems}
+                                    bonusDiscountLineItemId={discountLineItem.id}
                                 />
                             )
                         })}

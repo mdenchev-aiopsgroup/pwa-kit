@@ -257,7 +257,6 @@ const ProductDetail = () => {
 
     /************** Bonus Products  ************/
     useEffect(() => {
-        console.log('React upon changes in basket', basket)
         // Basket object contains indication that bonus items are available
         if (basket?.bonusDiscountLineItems?.length > 0) {
             // Display UI for the customer to choose
