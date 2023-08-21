@@ -9,11 +9,7 @@ import React, {useState} from 'react'
 import {
     Button,
     Box,
-    Radio,
-    RadioGroup,
     Stack,
-    Checkbox,
-    CheckboxGroup,
     Image,
     HStack,
     Heading
@@ -31,39 +27,11 @@ import {useCurrentBasket} from '@salesforce/retail-react-app/app/hooks/use-curre
 
 import PropTypes from 'prop-types'
 
-function renderRadio(bonusProducts) {
-    return (
-        <RadioGroup>
-            {bonusProducts?.map((bonusProduct) => {
-                return (
-                    <Radio key={bonusProduct.productId} value={bonusProduct.productId}>
-                        {bonusProduct.productName}
-                    </Radio>
-                )
-            })}
-        </RadioGroup>
-    )
-}
-
-function renderCheckbox(bonusProducts) {
-    return (
-        <CheckboxGroup>
-            {bonusProducts?.map((bonusProduct) => {
-                return (
-                    <Checkbox key={bonusProduct.productId} value={bonusProduct.productId}>
-                        {bonusProduct.productName}
-                    </Checkbox>
-                )
-            })}
-        </CheckboxGroup>
-    )
-}
-
-export const ChoiceOfBonusProductsRule = ({promotionId, maxBonusItems}) => {
+export const ChoiceOfBonusProductsRule = ({promotionId, bonusDiscountLineItemId}) => {
     const searchParams = {
         _refine: 'pmid=' + promotionId
     }
-    const {isLoading, data: productSearchResult} = useProductSearch(
+    const {data: productSearchResult} = useProductSearch(
         {
             parameters: {
                 ...searchParams,
@@ -75,24 +43,47 @@ export const ChoiceOfBonusProductsRule = ({promotionId, maxBonusItems}) => {
         }
     )
 
-    if (!isLoading) {
-        const bonusProducts = productSearchResult?.hits?.map((hit) => {
-            return {
-                productId: hit.productId,
-                productName: hit.productName
+    const bonusProducts = productSearchResult?.hits?.map((hit) => {
+        return {
+            productId: hit.productId,
+            productName: hit.productName
+        }
+    })
+    const productIds = (bonusProducts || [])
+        .map((bonusProduct) => bonusProduct.productId)
+        .slice(0, 24)
+        .join(',')
+
+    const {data: products} = useProducts(
+        {
+            parameters: {
+                ids: productIds,
+                allImages: true
             }
-        })
-        return maxBonusItems === 1 ? renderRadio(bonusProducts) : renderCheckbox(bonusProducts)
-    } else {
-        return 'Loading ...'
-    }
+        },
+        {
+            enabled: Boolean(productIds),
+            select: (result) => {
+                // Convert array into key/value object with key is the product id
+                return result?.data?.reduce((result, item) => {
+                    const key = item.id
+                    result[key] = item
+                    return result
+                }, {})
+            }
+        }
+    )
+    return (
+        <ListBonusProducts
+            products={products}
+            bonusProducts={bonusProducts}
+            bonusDiscountLineItemId={bonusDiscountLineItemId}
+        />
+    )
 }
 
 export const ChoiceOfBonusProductsList = ({bonusProducts, bonusDiscountLineItemId}) => {
-    const addItemToBasketMutation = useShopperBasketsMutation('addItemToBasket')
-    const {data: basket} = useCurrentBasket()
     const productIds = bonusProducts.map((p) => p.productId).join(',')
-    const [selectedValuesMap, setSelectedValuesMap] = useState(new Map())
     const {data: products} = useProducts(
         {
             parameters: {
@@ -114,27 +105,40 @@ export const ChoiceOfBonusProductsList = ({bonusProducts, bonusDiscountLineItemI
     )
 
     return (
+        <ListBonusProducts
+            products={products}
+            bonusProducts={bonusProducts}
+            bonusDiscountLineItemId={bonusDiscountLineItemId}
+        />
+    )
+}
+
+export const ListBonusProducts = ({products, bonusProducts, bonusDiscountLineItemId}) => {
+    const [selectedValuesMap, setSelectedValuesMap] = useState(new Map())
+    const addItemToBasketMutation = useShopperBasketsMutation('addItemToBasket')
+    const {data: basket} = useCurrentBasket()
+
+    return (
         <Stack>
             {products &&
                 bonusProducts.map((product) => {
                     const fullProduct = products[product.productId]
                     return (
-                        <BonusProductView
-                            key={product.productId}
-                            product={fullProduct}
-                            selectedValuesMap={selectedValuesMap}
-                            setSelectedValuesMap={setSelectedValuesMap}
-                        />
+                        fullProduct && (
+                            <BonusProductView
+                                key={product.productId}
+                                product={fullProduct}
+                                selectedValuesMap={selectedValuesMap}
+                                setSelectedValuesMap={setSelectedValuesMap}
+                            />
+                        )
                     )
                 })}
             <Button
                 width="full"
                 onClick={async () => {
-                    console.log(selectedValuesMap)
-
                     const productItems = []
                     selectedValuesMap.forEach((variationAttributes, productId) => {
-                        console.log(variationAttributes.get('color'))
                         // Find the exact productId
                         const fullProduct = products[productId]
                         const bonusProductId = fullProduct.variants.find(
@@ -162,10 +166,12 @@ export const ChoiceOfBonusProductsList = ({bonusProducts, bonusDiscountLineItemI
 }
 
 export const BonusProductView = ({product, selectedValuesMap, setSelectedValuesMap}) => {
-    const images = findImageGroupBy(product.imageGroups, {
-        viewType: 'large',
-        selectedVariationAttributes: product.variationAttributes
-    })
+    const images = product.imageGroups
+        ? findImageGroupBy(product.imageGroups, {
+              viewType: 'large',
+              selectedVariationAttributes: product.variationAttributes
+          })
+        : []
     const image = images?.images[0].link
 
     return (
@@ -177,7 +183,7 @@ export const BonusProductView = ({product, selectedValuesMap, setSelectedValuesM
                 <Heading as="h3" size="md">
                     {product.name}
                 </Heading>
-                {product.variationAttributes.map((variationAttribute) => {
+                {(product.variationAttributes || []).map((variationAttribute) => {
                     const {id, name, values = []} = variationAttribute
                     return (
                         <SwatchGroup
@@ -241,7 +247,14 @@ ChoiceOfBonusProductsList.propTypes = {
 
 ChoiceOfBonusProductsRule.propTypes = {
     maxBonusItems: PropTypes.number,
-    promotionId: PropTypes.string
+    promotionId: PropTypes.string,
+    bonusDiscountLineItemId: PropTypes.string
+}
+
+ListBonusProducts.propTypes = {
+    products: PropTypes.object,
+    bonusProducts: PropTypes.array,
+    bonusDiscountLineItemId: PropTypes.string
 }
 
 BonusProductView.propTypes = {
